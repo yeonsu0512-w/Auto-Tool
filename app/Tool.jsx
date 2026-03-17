@@ -10,6 +10,8 @@ export default function Tool() {
   const [rows, setRows] = useState([]);
   const [copied, setCopied] = useState(false);
   const [selectedImgId, setSelectedImgId] = useState(null);
+  const [baseUrl, setBaseUrl] = useState("");
+  const [baseUrlApplied, setBaseUrlApplied] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFiles = useCallback((files) => {
@@ -33,7 +35,6 @@ export default function Tool() {
   const removeRow = (rowId) =>
     setRows((prev) => prev.filter((r) => r.rowId !== rowId));
 
-  // 선택된 이미지를 행에 추가
   const addImgToRow = (rowId) => {
     if (!selectedImgId) return;
     setRows((prev) =>
@@ -102,6 +103,36 @@ export default function Tool() {
     });
   };
 
+  // baseUrl + 파일명으로 src URL 조합
+  const getImgSrc = (imgName) => {
+    if (!baseUrl.trim()) return imgName;
+    const base = baseUrl.trim().replace(/\/$/, "");
+    return `${base}/${imgName}`;
+  };
+
+  // baseUrl 파싱: 마지막 / 이전까지를 base로, 파일명 부분은 버림
+  const parseBaseUrl = (url) => {
+    if (!url.trim()) return "";
+    try {
+      const u = new URL(url.trim());
+      const parts = u.pathname.split("/");
+      parts.pop(); // 파일명 제거
+      u.pathname = parts.join("/");
+      return u.toString().replace(/\/$/, "");
+    } catch {
+      // URL 파싱 실패시 마지막 / 기준으로 자름
+      const idx = url.trim().lastIndexOf("/");
+      return idx > 8 ? url.trim().substring(0, idx) : url.trim();
+    }
+  };
+
+  const applyBaseUrl = () => {
+    const parsed = parseBaseUrl(baseUrl);
+    setBaseUrl(parsed);
+    setBaseUrlApplied(true);
+    setTimeout(() => setBaseUrlApplied(false), 2000);
+  };
+
   const generateHTML = () => {
     const validRows = rows.filter((r) => r.cells.length > 0);
     if (validRows.length === 0)
@@ -123,12 +154,14 @@ export default function Tool() {
 
       if (cells.length === 1) {
         const { img, link } = cells[0];
-        const imgTag = `<img src="${img.name}" alt="" style="${imgStyle}">`;
+        const srcUrl = getImgSrc(img.name);
+        const imgTag = `<img src="${srcUrl}" alt="" style="${imgStyle}">`;
         inner += `                <tr>\n                    <td style="${tdStyle}">\n                        ${link ? `<a href="${link}">${imgTag}</a>` : imgTag}\n                    </td>\n                </tr>\n`;
       } else {
         inner += `                <tr>\n                    <td style="${tdStyle}">\n                        <table border="0" cellpadding="0" cellspacing="0" style="${tableStyle}">\n                            <tr>\n`;
         cells.forEach(({ img, link }) => {
-          const imgTag = `<img src="${img.name}" alt="" style="${imgStyle}">`;
+          const srcUrl = getImgSrc(img.name);
+          const imgTag = `<img src="${srcUrl}" alt="" style="${imgStyle}">`;
           inner += `                                <td style="${tdStyle}">\n                                    ${link ? `<a href="${link}">${imgTag}</a>` : imgTag}\n                                </td>\n`;
         });
         inner += `                            </tr>\n                        </table>\n                    </td>\n                </tr>\n`;
@@ -156,7 +189,13 @@ export default function Tool() {
     yellow: "#e3b341",
     text: "#e6edf3",
     muted: "#8b949e",
+    purple: "#bc8cff",
   };
+
+  // baseUrl 미리보기: 파일명만 빼서 보여주기
+  const baseUrlPreview = baseUrl.trim()
+    ? `${baseUrl.trim().replace(/\/$/, "")}/파일명.jpg`
+    : null;
 
   return (
     <div
@@ -178,9 +217,10 @@ export default function Tool() {
           display: "flex",
           alignItems: "center",
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
+        <h1 style={{ margin: 0, fontSize: 12, fontWeight: 700 }}>
           🧩 이미지 HTML 변환 툴
         </h1>
         {selectedImgId && (
@@ -193,7 +233,6 @@ export default function Tool() {
               fontSize: 12,
               color: C.blue,
               fontWeight: 600,
-              animation: "pulse 1s infinite",
             }}
           >
             ✅ 이미지 선택됨 — 아래 행의 [+추가] 버튼을 누르세요
@@ -204,6 +243,101 @@ export default function Tool() {
             왼쪽 이미지를 클릭해서 선택 → 원하는 행의 [+추가] 버튼 클릭
           </div>
         )}
+
+        {/* 베이스 URL 입력 영역 */}
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              color: C.purple,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            🔗 이미지 URL
+          </div>
+          <input
+            type="text"
+            placeholder="예: https://sinsungcns.com/data/goods/1/2025/07/3893_temp_xxx_list1.png"
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            style={{
+              width: 380,
+              background: C.bg,
+              border: `1px solid ${baseUrl ? C.purple : C.border}`,
+              borderRadius: 5,
+              padding: "5px 9px",
+              color: C.text,
+              fontSize: 13,
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={applyBaseUrl}
+            disabled={!baseUrl.trim()}
+            style={{
+              background: baseUrl.trim() ? C.purple : C.card,
+              border: "none",
+              color: baseUrl.trim() ? "#fff" : C.muted,
+              borderRadius: 5,
+              padding: "5px 12px",
+              cursor: baseUrl.trim() ? "pointer" : "default",
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {baseUrlApplied ? "✅ 적용됨!" : "파일명만 분리"}
+          </button>
+          {baseUrl.trim() && (
+            <button
+              onClick={() => setBaseUrl("")}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                color: C.muted,
+                borderRadius: 5,
+                padding: "5px 8px",
+                cursor: "pointer",
+                fontSize: 13,
+              }}
+            >
+              ✕ 초기화
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* baseUrl 적용 시 미리보기 배너 */}
+      <div
+        style={{
+          background: "#1a1040",
+          borderBottom: `1px solid #3d2d6e`,
+          padding: "6px 20px",
+          fontSize: 13,
+          color: C.muted,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <span style={{ color: C.purple, fontWeight: 600 }}>📁 베이스 URL:</span>
+        <span style={{ color: "#c3a6ff", fontFamily: "monospace" }}>
+          {baseUrl.trim().replace(/\/$/, "")}/
+        </span>
+        <span style={{ color: C.muted }}>+</span>
+        <span style={{ color: C.yellow, fontFamily: "monospace" }}>파일명</span>
+        <span style={{ color: C.muted, marginLeft: 8 }}>
+          → HTML의 src가 자동으로 풀 URL로 생성됩니다
+        </span>
       </div>
 
       <div
@@ -212,21 +346,20 @@ export default function Tool() {
           gridTemplateColumns: "220px 1fr 300px",
           flex: 1,
           overflow: "hidden",
-          height: "calc(100vh - 50px)",
+          height: `calc(100vh - ${baseUrl.trim() ? 82 : 50}px)`,
         }}
       >
         {/* ① 이미지 풀 */}
         <div
           style={{
             overflowY: "scroll",
-            height: "calc(100vh - 50px)",
             borderRight: `1px solid ${C.border}`,
             padding: 12,
           }}
         >
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               color: C.muted,
               textTransform: "uppercase",
@@ -255,7 +388,7 @@ export default function Tool() {
             onDragOver={(e) => e.preventDefault()}
           >
             <div style={{ fontSize: 22 }}>📂</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
               클릭 또는 드래그 업로드
             </div>
             <input
@@ -270,7 +403,7 @@ export default function Tool() {
 
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               color: C.muted,
               marginBottom: 8,
               lineHeight: 1.5,
@@ -302,7 +435,6 @@ export default function Tool() {
                     src={img.src}
                     style={{ width: "100%", display: "block" }}
                   />
-                  {/* 번호 */}
                   <div
                     style={{
                       position: "absolute",
@@ -310,16 +442,14 @@ export default function Tool() {
                       left: 4,
                       background: isSelected ? C.blue : "rgba(0,0,0,0.6)",
                       color: "#fff",
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       padding: "1px 6px",
                       borderRadius: 4,
-                      transition: "background 0.15s",
                     }}
                   >
                     {i + 1}
                   </div>
-                  {/* 파일명 */}
                   <div
                     style={{
                       position: "absolute",
@@ -328,7 +458,7 @@ export default function Tool() {
                       right: 0,
                       background: "rgba(0,0,0,0.65)",
                       padding: "3px 6px",
-                      fontSize: 9,
+                      fontSize: 12,
                       color: "#ccc",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -337,7 +467,6 @@ export default function Tool() {
                   >
                     {img.name}
                   </div>
-                  {/* 선택 오버레이 */}
                   {isSelected && (
                     <div
                       style={{
@@ -353,7 +482,7 @@ export default function Tool() {
                         style={{
                           background: C.blue,
                           color: "#fff",
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: 700,
                           padding: "3px 10px",
                           borderRadius: 6,
@@ -379,7 +508,7 @@ export default function Tool() {
         >
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               color: C.muted,
               textTransform: "uppercase",
@@ -387,7 +516,7 @@ export default function Tool() {
               marginBottom: 10,
             }}
           >
-            ② 행 배치 & 링크 설정
+            ② 행 배치 &amp; 링크 설정
           </div>
 
           {rows.length === 0 && (
@@ -414,7 +543,6 @@ export default function Tool() {
                 overflow: "hidden",
               }}
             >
-              {/* Row Header */}
               <div
                 style={{
                   background: C.panel,
@@ -427,7 +555,7 @@ export default function Tool() {
               >
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: 700,
                     color: C.muted,
                     flex: 1,
@@ -435,7 +563,6 @@ export default function Tool() {
                 >
                   행 {ri + 1}
                 </span>
-                {/* 선택된 이미지가 있을 때 +추가 버튼 강조 */}
                 <button
                   onClick={() => addImgToRow(row.rowId)}
                   style={{
@@ -445,9 +572,8 @@ export default function Tool() {
                     borderRadius: 5,
                     padding: "4px 10px",
                     cursor: selectedImgId ? "pointer" : "default",
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: 700,
-                    transition: "all 0.15s",
                     boxShadow: selectedImgId ? `0 0 8px ${C.blue}66` : "none",
                   }}
                 >
@@ -463,7 +589,7 @@ export default function Tool() {
                     borderRadius: 5,
                     padding: "4px 7px",
                     cursor: "pointer",
-                    fontSize: 11,
+                    fontSize: 13,
                   }}
                 >
                   ▲
@@ -478,7 +604,7 @@ export default function Tool() {
                     borderRadius: 5,
                     padding: "4px 7px",
                     cursor: "pointer",
-                    fontSize: 11,
+                    fontSize: 13,
                   }}
                 >
                   ▼
@@ -492,7 +618,7 @@ export default function Tool() {
                     borderRadius: 5,
                     padding: "4px 7px",
                     cursor: "pointer",
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: 700,
                   }}
                 >
@@ -500,7 +626,6 @@ export default function Tool() {
                 </button>
               </div>
 
-              {/* Cells */}
               <div
                 style={{
                   padding: 8,
@@ -517,7 +642,7 @@ export default function Tool() {
                       flex: 1,
                       textAlign: "center",
                       color: C.muted,
-                      fontSize: 11,
+                      fontSize: 13,
                       padding: "14px 0",
                     }}
                   >
@@ -571,7 +696,7 @@ export default function Tool() {
                               width: 16,
                               height: 16,
                               cursor: "pointer",
-                              fontSize: 10,
+                              fontSize: 12,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -584,6 +709,7 @@ export default function Tool() {
                         <div style={{ display: "flex", gap: 2, marginTop: 3 }}>
                           <button
                             onClick={() => moveCell(row.rowId, cell.cellId, -1)}
+                            disabled={ci === 0}
                             style={{
                               flex: 1,
                               background: C.card,
@@ -592,14 +718,14 @@ export default function Tool() {
                               borderRadius: 4,
                               padding: "2px 0",
                               cursor: "pointer",
-                              fontSize: 10,
+                              fontSize: 12,
                             }}
-                            disabled={ci === 0}
                           >
                             ◀
                           </button>
                           <button
                             onClick={() => moveCell(row.rowId, cell.cellId, 1)}
+                            disabled={ci === row.cells.length - 1}
                             style={{
                               flex: 1,
                               background: C.card,
@@ -608,9 +734,8 @@ export default function Tool() {
                               borderRadius: 4,
                               padding: "2px 0",
                               cursor: "pointer",
-                              fontSize: 10,
+                              fontSize: 12,
                             }}
-                            disabled={ci === row.cells.length - 1}
                           >
                             ▶
                           </button>
@@ -630,11 +755,28 @@ export default function Tool() {
                             borderRadius: 4,
                             padding: "3px 5px",
                             color: C.text,
-                            fontSize: 9,
+                            fontSize: 12,
                             outline: "none",
                             boxSizing: "border-box",
                           }}
                         />
+                        {/* 실제 src URL 미리보기 */}
+                        {baseUrl.trim() && (
+                          <div
+                            style={{
+                              fontSize: 8,
+                              color: C.purple,
+                              marginTop: 2,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              title: getImgSrc(img.name),
+                            }}
+                            title={getImgSrc(img.name)}
+                          >
+                            🔗 {getImgSrc(img.name)}
+                          </div>
+                        )}
                         {cell.link && (
                           <div
                             style={{
@@ -685,7 +827,7 @@ export default function Tool() {
           <div>
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: C.muted,
                 textTransform: "uppercase",
@@ -769,7 +911,7 @@ export default function Tool() {
                                 style={{
                                   background: "rgba(0,0,0,0.75)",
                                   color: "#fff",
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   padding: "3px 7px",
                                   borderRadius: 5,
                                 }}
@@ -798,7 +940,7 @@ export default function Tool() {
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: C.muted,
                   textTransform: "uppercase",
@@ -816,7 +958,7 @@ export default function Tool() {
                   borderRadius: 5,
                   padding: "6px 12px",
                   cursor: "pointer",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                 }}
               >
@@ -834,7 +976,7 @@ export default function Tool() {
                 border: `1px solid ${C.border}`,
                 borderRadius: 8,
                 color: "#79c0ff",
-                fontSize: 10,
+                fontSize: 12,
                 padding: 10,
                 fontFamily: "monospace",
                 resize: "none",
@@ -845,7 +987,7 @@ export default function Tool() {
             <div
               style={{
                 marginTop: 8,
-                fontSize: 10,
+                fontSize: 12,
                 color: C.muted,
                 lineHeight: 1.6,
                 background: C.card,
@@ -853,11 +995,33 @@ export default function Tool() {
                 padding: 8,
               }}
             >
-              💡 이미지 src는 <span style={{ color: "#ffa657" }}>파일명</span>
-              으로 표시됩니다.
-              <br />
-              퍼스트몰에 올린 후{" "}
-              <span style={{ color: C.blue }}>실제 서버 URL로 교체</span>하세요.
+              {baseUrl.trim() ? (
+                <>
+                  <span style={{ color: C.purple }}>🔗 베이스 URL 적용 중</span>{" "}
+                  — src가 풀 URL로 자동 생성됩니다.
+                  <br />
+                  <span
+                    style={{
+                      color: C.muted,
+                      fontFamily: "monospace",
+                      fontSize: 12,
+                    }}
+                  >
+                    {baseUrl.trim().replace(/\/$/, "")}/파일명
+                  </span>
+                </>
+              ) : (
+                <>
+                  💡 이미지 src는{" "}
+                  <span style={{ color: "#ffa657" }}>파일명</span>으로
+                  표시됩니다.
+                  <br />
+                  <span style={{ color: C.blue }}>
+                    상단에 이미지 URL을 입력
+                  </span>
+                  하면 자동으로 풀 URL이 생성됩니다.
+                </>
+              )}
             </div>
           </div>
         </div>
