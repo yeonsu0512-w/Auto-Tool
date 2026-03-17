@@ -349,12 +349,12 @@ export default function Tool() {
           height: `calc(100vh - ${baseUrl.trim() ? 82 : 50}px)`,
         }}
       >
-        {/* ① 이미지 풀 */}
         <div
           style={{
             overflowY: "scroll",
             borderRight: `1px solid ${C.border}`,
             padding: 12,
+            height: "91vh",
           }}
         >
           <div
