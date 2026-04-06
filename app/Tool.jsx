@@ -501,9 +501,10 @@ export default function Tool() {
         {/* ② 행 배치 */}
         <div
           style={{
-            overflowY: "auto",
+            overflowY: "scroll",
             borderRight: `1px solid ${C.border}`,
             padding: 12,
+            height: "91vh",
           }}
         >
           <div
