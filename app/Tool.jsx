@@ -818,11 +818,12 @@ export default function Tool() {
         {/* ③ 미리보기 + HTML */}
         <div
           style={{
-            overflowY: "auto",
+            overflowY: "scroll",
             padding: 12,
             display: "flex",
             flexDirection: "column",
             gap: 12,
+            height: "91vh",
           }}
         >
           <div>
