@@ -138,7 +138,7 @@ export default function Tool() {
     if (validRows.length === 0)
       return `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>`;
 
-    const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;font-size:0`;
+    const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;`;
     const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0;`;
     const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%; mso-table-lspace: 0pt;line-height: 0;mso-table-rspace: 0pt;`;
 
@@ -354,7 +354,7 @@ export default function Tool() {
             overflowY: "scroll",
             borderRight: `1px solid ${C.border}`,
             padding: 12,
-            height: "91vh",
+            height: "100vh",
           }}
         >
           <div
@@ -374,11 +374,12 @@ export default function Tool() {
             style={{
               border: `2px dashed ${C.border}`,
               borderRadius: 8,
-              padding: 12,
+              padding: 30,
               textAlign: "center",
               cursor: "pointer",
               marginBottom: 10,
               background: C.card,
+              minHeight: 100,
             }}
             onClick={() => fileInputRef.current?.click()}
             onDrop={(e) => {
@@ -387,7 +388,7 @@ export default function Tool() {
             }}
             onDragOver={(e) => e.preventDefault()}
           >
-            <div style={{ fontSize: 22 }}>📂</div>
+            <div style={{ fontSize: 30 }}>📂</div>
             <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
               클릭 또는 드래그 업로드
             </div>
@@ -504,7 +505,7 @@ export default function Tool() {
             overflowY: "scroll",
             borderRight: `1px solid ${C.border}`,
             padding: 12,
-            height: "91vh",
+            height: "100",
           }}
         >
           <div
@@ -823,7 +824,7 @@ export default function Tool() {
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            height: "91vh",
+            height: "100vh",
           }}
         >
           <div>
