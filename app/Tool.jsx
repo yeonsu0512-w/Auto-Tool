@@ -136,7 +136,7 @@ export default function Tool() {
   const generateHTML = () => {
     const validRows = rows.filter((r) => r.cells.length > 0);
     if (validRows.length === 0)
-      return `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>`;
+      return `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title></title>\n</head>\n<body>\n    \n</body>\n</html>`;
 
     const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;`;
     const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0;`;
