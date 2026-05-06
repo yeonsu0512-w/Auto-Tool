@@ -5,6 +5,26 @@ import { useState, useRef, useCallback } from "react";
 let idCounter = 0;
 const uid = () => `id_${++idCounter}_${Date.now()}`;
 
+// 파일명에서 숫자를 추출해 자연어 정렬
+const naturalSort = (a, b) => {
+  const re = /(\d+)/g;
+  const aParts = a.name.split(re);
+  const bParts = b.name.split(re);
+  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+    const aSeg = aParts[i] || "";
+    const bSeg = bParts[i] || "";
+    const aNum = parseInt(aSeg, 10);
+    const bNum = parseInt(bSeg, 10);
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      if (aNum !== bNum) return aNum - bNum;
+    } else {
+      if (aSeg < bSeg) return -1;
+      if (aSeg > bSeg) return 1;
+    }
+  }
+  return 0;
+};
+
 export default function Tool() {
   const [pool, setPool] = useState([]);
   const [rows, setRows] = useState([]);
@@ -15,18 +35,31 @@ export default function Tool() {
   const fileInputRef = useRef(null);
 
   const handleFiles = useCallback((files) => {
-    Array.from(files)
-      .filter((f) => f.type.startsWith("image/"))
-      .forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setPool((prev) => [
-            ...prev,
-            { id: uid(), src: e.target.result, name: file.name },
-          ]);
-        };
-        reader.readAsDataURL(file);
+    const imageFiles = Array.from(files).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+
+    // 파일명 기준 자연어 정렬
+    imageFiles.sort((a, b) => naturalSort({ name: a.name }, { name: b.name }));
+
+    const readers = imageFiles.map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) =>
+            resolve({ id: uid(), src: e.target.result, name: file.name });
+          reader.readAsDataURL(file);
+        }),
+    );
+
+    Promise.all(readers).then((newImgs) => {
+      setPool((prev) => {
+        const combined = [...prev, ...newImgs];
+        // 전체 pool도 정렬 유지
+        combined.sort(naturalSort);
+        return combined;
       });
+    });
   }, []);
 
   const addRow = () =>
@@ -35,7 +68,6 @@ export default function Tool() {
   const removeRow = (rowId) =>
     setRows((prev) => prev.filter((r) => r.rowId !== rowId));
 
-  // 원클릭: 이미지 클릭 시 새 행에 바로 추가
   const handleImgClick = (imgId) => {
     setRows((prev) => [
       ...prev,
@@ -43,7 +75,6 @@ export default function Tool() {
     ]);
   };
 
-  // 선택 모드: 기존 행에 추가
   const addImgToRow = (rowId) => {
     if (!selectedImgId) return;
     setRows((prev) =>
@@ -140,7 +171,7 @@ export default function Tool() {
       return `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title></title>\n</head>\n<body>\n    \n</body>\n</html>`;
 
     const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;font-size:0;height:0;`;
-    const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0; height:auto;`;
+    const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0;height:auto;`;
     const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%;mso-table-lspace:0pt;line-height:0;mso-table-rspace:0pt;`;
 
     let inner = `    <div style="width:100%; max-width:800px; margin:0;">\n`;
@@ -364,7 +395,10 @@ export default function Tool() {
               원클릭
             </span>
             이미지 클릭 → 새 행에 바로 추가 &nbsp;·&nbsp; [선택] 버튼 → 기존
-            행에 넣기
+            행에 넣기 &nbsp;·&nbsp;
+            <span style={{ color: C.green, fontWeight: 600 }}>
+              📂 파일명 숫자 순 자동 정렬
+            </span>
           </>
         )}
       </div>
@@ -427,6 +461,10 @@ export default function Tool() {
               }}
             >
               클릭 또는 드래그 업로드
+              <br />
+              <span style={{ color: C.green, fontSize: 10 }}>
+                파일명 순 자동 정렬
+              </span>
             </div>
             <input
               ref={fileInputRef}
@@ -453,7 +491,6 @@ export default function Tool() {
                     transform: isSelected ? "scale(0.97)" : "scale(1)",
                   }}
                 >
-                  {/* 메인 클릭: 원클릭으로 새 행 추가 */}
                   <div
                     onClick={() => {
                       if (isSelected) {
@@ -504,7 +541,6 @@ export default function Tool() {
                     {img.name}
                   </div>
 
-                  {/* [선택] 버튼: 기존 행에 추가할 때 사용 */}
                   {!isSelected && (
                     <button
                       onClick={(e) => {
@@ -824,7 +860,9 @@ export default function Tool() {
                               width: "100%",
                               marginTop: 3,
                               background: C.bg,
-                              border: `1px solid ${cell.link ? C.green : C.border}`,
+                              border: `1px solid ${
+                                cell.link ? C.green : C.border
+                              }`,
                               borderRadius: 4,
                               padding: "3px 5px",
                               color: C.text,
