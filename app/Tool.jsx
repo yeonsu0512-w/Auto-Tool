@@ -140,7 +140,7 @@ export default function Tool() {
       return `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title></title>\n</head>\n<body>\n    \n</body>\n</html>`;
 
     const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;font-size:0;height:0;`;
-    const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0; height:"auto"`;
+    const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0; height:auto;`;
     const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%;mso-table-lspace:0pt;line-height:0;mso-table-rspace:0pt;`;
 
     let inner = `    <div style="width:100%; max-width:800px; margin:0;">\n`;
