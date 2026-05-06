@@ -15,26 +15,35 @@ export default function Tool() {
   const fileInputRef = useRef(null);
 
   const handleFiles = useCallback((files) => {
-    const fileArr = Array.from(files).filter((f) =>
-      f.type.startsWith("image/"),
-    );
-    fileArr.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPool((prev) => [
-          ...prev,
-          { id: uid(), src: e.target.result, name: file.name },
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
+    Array.from(files)
+      .filter((f) => f.type.startsWith("image/"))
+      .forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPool((prev) => [
+            ...prev,
+            { id: uid(), src: e.target.result, name: file.name },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      });
   }, []);
 
   const addRow = () =>
     setRows((prev) => [...prev, { rowId: uid(), cells: [] }]);
+
   const removeRow = (rowId) =>
     setRows((prev) => prev.filter((r) => r.rowId !== rowId));
 
+  // 원클릭: 이미지 클릭 시 새 행에 바로 추가
+  const handleImgClick = (imgId) => {
+    setRows((prev) => [
+      ...prev,
+      { rowId: uid(), cells: [{ cellId: uid(), imgId, link: "" }] },
+    ]);
+  };
+
+  // 선택 모드: 기존 행에 추가
   const addImgToRow = (rowId) => {
     if (!selectedImgId) return;
     setRows((prev) =>
@@ -53,7 +62,7 @@ export default function Tool() {
     setSelectedImgId(null);
   };
 
-  const removeCell = (rowId, cellId) => {
+  const removeCell = (rowId, cellId) =>
     setRows((prev) =>
       prev.map((r) =>
         r.rowId === rowId
@@ -61,9 +70,8 @@ export default function Tool() {
           : r,
       ),
     );
-  };
 
-  const updateLink = (rowId, cellId, link) => {
+  const updateLink = (rowId, cellId, link) =>
     setRows((prev) =>
       prev.map((r) =>
         r.rowId === rowId
@@ -76,9 +84,8 @@ export default function Tool() {
           : r,
       ),
     );
-  };
 
-  const moveCell = (rowId, cellId, dir) => {
+  const moveCell = (rowId, cellId, dir) =>
     setRows((prev) =>
       prev.map((r) => {
         if (r.rowId !== rowId) return r;
@@ -90,9 +97,8 @@ export default function Tool() {
         return { ...r, cells };
       }),
     );
-  };
 
-  const moveRow = (rowId, dir) => {
+  const moveRow = (rowId, dir) =>
     setRows((prev) => {
       const idx = prev.findIndex((r) => r.rowId === rowId);
       const newIdx = idx + dir;
@@ -101,26 +107,21 @@ export default function Tool() {
       [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
       return arr;
     });
-  };
 
-  // baseUrl + 파일명으로 src URL 조합
   const getImgSrc = (imgName) => {
     if (!baseUrl.trim()) return imgName;
-    const base = baseUrl.trim().replace(/\/$/, "");
-    return `${base}/${imgName}`;
+    return `${baseUrl.trim().replace(/\/$/, "")}/${imgName}`;
   };
 
-  // baseUrl 파싱: 마지막 / 이전까지를 base로, 파일명 부분은 버림
   const parseBaseUrl = (url) => {
     if (!url.trim()) return "";
     try {
       const u = new URL(url.trim());
       const parts = u.pathname.split("/");
-      parts.pop(); // 파일명 제거
+      parts.pop();
       u.pathname = parts.join("/");
       return u.toString().replace(/\/$/, "");
     } catch {
-      // URL 파싱 실패시 마지막 / 기준으로 자름
       const idx = url.trim().lastIndexOf("/");
       return idx > 8 ? url.trim().substring(0, idx) : url.trim();
     }
@@ -135,22 +136,21 @@ export default function Tool() {
 
   const generateHTML = () => {
     const validRows = rows.filter((r) => r.cells.length > 0);
-    if (validRows.length === 0)
+    if (!validRows.length)
       return `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title></title>\n</head>\n<body>\n    \n</body>\n</html>`;
 
-    const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;`;
+    const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;font-size:0`;
     const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0;`;
-    const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%; mso-table-lspace: 0pt;line-height: 0;mso-table-rspace: 0pt;`;
+    const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%;mso-table-lspace:0pt;line-height:0;mso-table-rspace:0pt;`;
 
     let inner = `    <div style="width:100%; max-width:800px; margin:0;">\n`;
-    inner += `        <table border="0" cellpadding="0" cellspacing="0" style="${tableStyle}">\n`;
-    inner += `            <tbody>\n`;
+    inner += `        <table border="0" cellpadding="0" cellspacing="0" style="${tableStyle}">\n            <tbody>\n`;
 
     rows.forEach((row) => {
       const cells = row.cells
         .map((c) => ({ ...c, img: pool.find((p) => p.id === c.imgId) }))
         .filter((c) => c.img);
-      if (cells.length === 0) return;
+      if (!cells.length) return;
 
       if (cells.length === 1) {
         const { img, link } = cells[0];
@@ -192,92 +192,75 @@ export default function Tool() {
     purple: "#bc8cff",
   };
 
-  // baseUrl 미리보기: 파일명만 빼서 보여주기
-  const baseUrlPreview = baseUrl.trim()
-    ? `${baseUrl.trim().replace(/\/$/, "")}/파일명.jpg`
-    : null;
-
   return (
     <div
       style={{
         background: C.bg,
-        minHeight: "100vh",
         color: C.text,
         fontFamily: "'Segoe UI', system-ui, sans-serif",
-        display: "flex",
-        flexDirection: "column",
+        display: "grid",
+        gridTemplateRows: "auto auto 1fr",
+        height: "100vh",
+        overflow: "hidden",
       }}
     >
-      {/* Header */}
+      {/* ── 헤더 ── */}
       <div
         style={{
           background: C.panel,
           borderBottom: `1px solid ${C.border}`,
-          padding: "11px 20px",
+          padding: "9px 16px",
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: 10,
           flexWrap: "wrap",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 12, fontWeight: 700 }}>
-          🧩 이미지 HTML 변환 툴
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 13,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+          }}
+        >
+          🧩 이미지 HTML 빌더
         </h1>
-        {selectedImgId && (
-          <div
-            style={{
-              background: "#1c2d3f",
-              border: `1px solid ${C.blue}`,
-              borderRadius: 6,
-              padding: "4px 12px",
-              fontSize: 12,
-              color: C.blue,
-              fontWeight: 600,
-            }}
-          >
-            ✅ 이미지 선택됨 — 아래 행의 [+추가] 버튼을 누르세요
-          </div>
-        )}
-        {!selectedImgId && pool.length > 0 && (
-          <div style={{ fontSize: 12, color: C.muted }}>
-            왼쪽 이미지를 클릭해서 선택 → 원하는 행의 [+추가] 버튼 클릭
-          </div>
-        )}
 
-        {/* 베이스 URL 입력 영역 */}
         <div
           style={{
-            marginLeft: "auto",
             display: "flex",
             alignItems: "center",
             gap: 6,
-            flexWrap: "wrap",
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          <div
+          <span
             style={{
-              fontSize: 13,
+              fontSize: 11,
               color: C.purple,
               fontWeight: 600,
               whiteSpace: "nowrap",
             }}
           >
             🔗 이미지 URL
-          </div>
+          </span>
           <input
             type="text"
-            placeholder="예: https://sinsungcns.com/data/goods/1/2025/07/3893_temp_xxx_list1.png"
+            placeholder="https://example.com/path/img.png"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             style={{
-              width: 380,
+              flex: 1,
               background: C.bg,
               border: `1px solid ${baseUrl ? C.purple : C.border}`,
               borderRadius: 5,
-              padding: "5px 9px",
+              padding: "5px 8px",
               color: C.text,
-              fontSize: 13,
+              fontSize: 11,
               outline: "none",
+              minWidth: 0,
             }}
           />
           <button
@@ -288,14 +271,14 @@ export default function Tool() {
               border: "none",
               color: baseUrl.trim() ? "#fff" : C.muted,
               borderRadius: 5,
-              padding: "5px 12px",
+              padding: "5px 10px",
               cursor: baseUrl.trim() ? "pointer" : "default",
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: 600,
               whiteSpace: "nowrap",
             }}
           >
-            {baseUrlApplied ? "✅ 적용됨!" : "파일명만 분리"}
+            {baseUrlApplied ? "✅ 적용!" : "파일명 분리"}
           </button>
           {baseUrl.trim() && (
             <button
@@ -305,81 +288,127 @@ export default function Tool() {
                 border: `1px solid ${C.border}`,
                 color: C.muted,
                 borderRadius: 5,
-                padding: "5px 8px",
+                padding: "5px 7px",
                 cursor: "pointer",
-                fontSize: 13,
+                fontSize: 11,
               }}
             >
-              ✕ 초기화
+              ✕
             </button>
           )}
         </div>
+
+        <button
+          onClick={copyHTML}
+          style={{
+            background: copied ? C.green : C.blue,
+            border: "none",
+            color: "#fff",
+            borderRadius: 5,
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {copied ? "✅ 복사됨!" : "📋 HTML 복사"}
+        </button>
       </div>
 
-      {/* baseUrl 적용 시 미리보기 배너 */}
+      {/* ── 서브 힌트 배너 ── */}
       <div
         style={{
-          background: "#1a1040",
-          borderBottom: `1px solid #3d2d6e`,
-          padding: "6px 20px",
-          fontSize: 13,
+          background: baseUrl.trim() ? "#1a1040" : "#0f1e2e",
+          borderBottom: `1px solid ${baseUrl.trim() ? "#3d2d6e" : C.border}`,
+          padding: "5px 16px",
+          fontSize: 11,
           color: C.muted,
           display: "flex",
           alignItems: "center",
           gap: 8,
+          flexWrap: "wrap",
         }}
       >
-        <span style={{ color: C.purple, fontWeight: 600 }}>📁 베이스 URL:</span>
-        <span style={{ color: "#c3a6ff", fontFamily: "monospace" }}>
-          {baseUrl.trim().replace(/\/$/, "")}/
-        </span>
-        <span style={{ color: C.muted }}>+</span>
-        <span style={{ color: C.yellow, fontFamily: "monospace" }}>파일명</span>
-        <span style={{ color: C.muted, marginLeft: 8 }}>
-          → HTML의 src가 자동으로 풀 URL로 생성됩니다
-        </span>
+        {baseUrl.trim() ? (
+          <>
+            <span style={{ color: C.purple, fontWeight: 600 }}>
+              📁 베이스 URL:
+            </span>
+            <span style={{ color: "#c3a6ff", fontFamily: "monospace" }}>
+              {baseUrl.trim().replace(/\/$/, "")}/
+            </span>
+            <span>+</span>
+            <span style={{ color: C.yellow, fontFamily: "monospace" }}>
+              파일명
+            </span>
+            <span style={{ marginLeft: 4 }}>→ src 자동 생성</span>
+          </>
+        ) : selectedImgId ? (
+          <span style={{ color: C.blue, fontWeight: 600 }}>
+            ✅ 이미지 선택됨 — 행의 [✚ 여기에 추가] 버튼을 누르거나, 다른
+            이미지를 클릭하면 새 행에 추가
+          </span>
+        ) : (
+          <>
+            <span
+              style={{
+                background: "#1c3a5e",
+                color: C.blue,
+                padding: "1px 7px",
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
+              원클릭
+            </span>
+            이미지 클릭 → 새 행에 바로 추가 &nbsp;·&nbsp; [선택] 버튼 → 기존
+            행에 넣기
+          </>
+        )}
       </div>
 
+      {/* ── 메인 ── */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "220px 1fr 300px",
-          flex: 1,
+          gridTemplateColumns: "200px 1fr 290px",
           overflow: "hidden",
-          height: `calc(100vh - ${baseUrl.trim() ? 82 : 50}px)`,
+          height: "100%",
         }}
       >
+        {/* ① 이미지 패널 */}
         <div
           style={{
-            overflowY: "scroll",
+            overflowY: "auto",
             borderRight: `1px solid ${C.border}`,
-            padding: 12,
-            height: "100vh",
+            padding: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
           }}
         >
           <div
             style={{
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 11,
+              fontWeight: 600,
               color: C.muted,
               textTransform: "uppercase",
-              letterSpacing: 1,
-              marginBottom: 10,
+              letterSpacing: 0.5,
             }}
           >
-            ① 이미지 업로드
+            ① 이미지
           </div>
 
           <div
             style={{
               border: `2px dashed ${C.border}`,
               borderRadius: 8,
-              padding: 30,
+              padding: "16px 10px",
               textAlign: "center",
               cursor: "pointer",
-              marginBottom: 10,
               background: C.card,
-              minHeight: 100,
             }}
             onClick={() => fileInputRef.current?.click()}
             onDrop={(e) => {
@@ -388,8 +417,15 @@ export default function Tool() {
             }}
             onDragOver={(e) => e.preventDefault()}
           >
-            <div style={{ fontSize: 30 }}>📂</div>
-            <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+            <div style={{ fontSize: 22 }}>📂</div>
+            <div
+              style={{
+                fontSize: 11,
+                color: C.muted,
+                marginTop: 3,
+                lineHeight: 1.4,
+              }}
+            >
               클릭 또는 드래그 업로드
             </div>
             <input
@@ -402,40 +438,39 @@ export default function Tool() {
             />
           </div>
 
-          <div
-            style={{
-              fontSize: 12,
-              color: C.muted,
-              marginBottom: 8,
-              lineHeight: 1.5,
-            }}
-          >
-            👆 이미지 클릭 → 선택
-            <br />→ 오른쪽 행에서 [+추가]
-          </div>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {pool.map((img, i) => {
               const isSelected = selectedImgId === img.id;
               return (
                 <div
                   key={img.id}
-                  onClick={() => setSelectedImgId(isSelected ? null : img.id)}
                   style={{
                     position: "relative",
                     borderRadius: 7,
                     overflow: "hidden",
-                    cursor: "pointer",
                     border: `2px solid ${isSelected ? C.blue : C.border}`,
-                    boxShadow: isSelected ? `0 0 0 2px ${C.blue}44` : "none",
                     transition: "all 0.15s",
                     transform: isSelected ? "scale(0.97)" : "scale(1)",
                   }}
                 >
-                  <img
-                    src={img.src}
-                    style={{ width: "100%", display: "block" }}
-                  />
+                  {/* 메인 클릭: 원클릭으로 새 행 추가 */}
+                  <div
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedImgId(null);
+                      } else {
+                        handleImgClick(img.id);
+                      }
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <img
+                      src={img.src}
+                      style={{ width: "100%", display: "block" }}
+                      alt=""
+                    />
+                  </div>
+
                   <div
                     style={{
                       position: "absolute",
@@ -443,9 +478,9 @@ export default function Tool() {
                       left: 4,
                       background: isSelected ? C.blue : "rgba(0,0,0,0.6)",
                       color: "#fff",
-                      fontSize: 12,
+                      fontSize: 10,
                       fontWeight: 700,
-                      padding: "1px 6px",
+                      padding: "1px 5px",
                       borderRadius: 4,
                     }}
                   >
@@ -459,7 +494,7 @@ export default function Tool() {
                       right: 0,
                       background: "rgba(0,0,0,0.65)",
                       padding: "3px 6px",
-                      fontSize: 12,
+                      fontSize: 10,
                       color: "#ccc",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -468,6 +503,31 @@ export default function Tool() {
                   >
                     {img.name}
                   </div>
+
+                  {/* [선택] 버튼: 기존 행에 추가할 때 사용 */}
+                  {!isSelected && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImgId(img.id);
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        background: "rgba(0,0,0,0.72)",
+                        border: `1px solid ${C.border}`,
+                        color: C.muted,
+                        borderRadius: 4,
+                        padding: "1px 6px",
+                        cursor: "pointer",
+                        fontSize: 9,
+                      }}
+                    >
+                      선택
+                    </button>
+                  )}
+
                   {isSelected && (
                     <div
                       style={{
@@ -477,16 +537,17 @@ export default function Tool() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        pointerEvents: "none",
                       }}
                     >
                       <span
                         style={{
                           background: C.blue,
                           color: "#fff",
-                          fontSize: 13,
+                          fontSize: 11,
                           fontWeight: 700,
-                          padding: "3px 10px",
-                          borderRadius: 6,
+                          padding: "3px 8px",
+                          borderRadius: 5,
                         }}
                       >
                         ✓ 선택됨
@@ -502,19 +563,18 @@ export default function Tool() {
         {/* ② 행 배치 */}
         <div
           style={{
-            overflowY: "scroll",
+            overflowY: "auto",
             borderRight: `1px solid ${C.border}`,
             padding: 12,
-            height: "100",
           }}
         >
           <div
             style={{
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 11,
+              fontWeight: 600,
               color: C.muted,
               textTransform: "uppercase",
-              letterSpacing: 1,
+              letterSpacing: 0.5,
               marginBottom: 10,
             }}
           >
@@ -528,280 +588,291 @@ export default function Tool() {
                 padding: 40,
                 color: C.muted,
                 fontSize: 13,
+                lineHeight: 1.7,
               }}
             >
-              아래 버튼으로 행을 추가하세요
+              왼쪽 이미지를 클릭하면
+              <br />
+              자동으로 행이 추가됩니다
             </div>
           )}
 
-          {rows.map((row, ri) => (
-            <div
-              key={row.rowId}
-              style={{
-                background: C.card,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                marginBottom: 10,
-                overflow: "hidden",
-              }}
-            >
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {rows.map((row, ri) => (
               <div
+                key={row.rowId}
                 style={{
-                  background: C.panel,
-                  padding: "7px 10px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  borderBottom: `1px solid ${C.border}`,
+                  background: C.card,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  overflow: "hidden",
                 }}
               >
-                <span
+                <div
                   style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: C.muted,
-                    flex: 1,
+                    background: C.panel,
+                    padding: "6px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    borderBottom: `1px solid ${C.border}`,
                   }}
                 >
-                  행 {ri + 1}
-                </span>
-                <button
-                  onClick={() => addImgToRow(row.rowId)}
-                  style={{
-                    background: selectedImgId ? C.blue : C.card,
-                    border: `1px solid ${selectedImgId ? C.blue : C.border}`,
-                    color: selectedImgId ? "#fff" : C.muted,
-                    borderRadius: 5,
-                    padding: "4px 10px",
-                    cursor: selectedImgId ? "pointer" : "default",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    boxShadow: selectedImgId ? `0 0 8px ${C.blue}66` : "none",
-                  }}
-                >
-                  {selectedImgId ? "✚ 여기에 추가" : "+ 추가"}
-                </button>
-                <button
-                  onClick={() => moveRow(row.rowId, -1)}
-                  disabled={ri === 0}
-                  style={{
-                    background: C.card,
-                    border: `1px solid ${C.border}`,
-                    color: C.text,
-                    borderRadius: 5,
-                    padding: "4px 7px",
-                    cursor: "pointer",
-                    fontSize: 13,
-                  }}
-                >
-                  ▲
-                </button>
-                <button
-                  onClick={() => moveRow(row.rowId, 1)}
-                  disabled={ri === rows.length - 1}
-                  style={{
-                    background: C.card,
-                    border: `1px solid ${C.border}`,
-                    color: C.text,
-                    borderRadius: 5,
-                    padding: "4px 7px",
-                    cursor: "pointer",
-                    fontSize: 13,
-                  }}
-                >
-                  ▼
-                </button>
-                <button
-                  onClick={() => removeRow(row.rowId)}
-                  style={{
-                    background: C.red,
-                    border: "none",
-                    color: "#fff",
-                    borderRadius: 5,
-                    padding: "4px 7px",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div
-                style={{
-                  padding: 8,
-                  minHeight: 60,
-                  display: "flex",
-                  gap: 6,
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                }}
-              >
-                {row.cells.length === 0 ? (
-                  <div
+                  <span
                     style={{
-                      flex: 1,
-                      textAlign: "center",
+                      fontSize: 12,
+                      fontWeight: 600,
                       color: C.muted,
-                      fontSize: 13,
-                      padding: "14px 0",
+                      flex: 1,
                     }}
                   >
-                    {selectedImgId
-                      ? "👆 위의 [✚ 여기에 추가] 버튼을 누르세요"
-                      : "이미지를 선택 후 추가 버튼 클릭"}
-                  </div>
-                ) : (
-                  row.cells.map((cell, ci) => {
-                    const img = pool.find((p) => p.id === cell.imgId);
-                    if (!img) return null;
-                    return (
-                      <div
-                        key={cell.cellId}
-                        style={{ flexShrink: 0, width: 100 }}
-                      >
-                        <div style={{ position: "relative" }}>
-                          <img
-                            src={img.src}
+                    행 {ri + 1}
+                  </span>
+                  <button
+                    onClick={() => addImgToRow(row.rowId)}
+                    style={{
+                      background: selectedImgId ? C.blue : C.card,
+                      border: `1px solid ${selectedImgId ? C.blue : C.border}`,
+                      color: selectedImgId ? "#fff" : C.muted,
+                      borderRadius: 5,
+                      padding: "3px 9px",
+                      cursor: selectedImgId ? "pointer" : "default",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      boxShadow: selectedImgId ? `0 0 6px ${C.blue}55` : "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {selectedImgId ? "✚ 여기에 추가" : "+ 추가"}
+                  </button>
+                  <button
+                    onClick={() => moveRow(row.rowId, -1)}
+                    disabled={ri === 0}
+                    style={{
+                      background: C.card,
+                      border: `1px solid ${C.border}`,
+                      color: C.text,
+                      borderRadius: 4,
+                      padding: "3px 6px",
+                      cursor: "pointer",
+                      fontSize: 11,
+                    }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => moveRow(row.rowId, 1)}
+                    disabled={ri === rows.length - 1}
+                    style={{
+                      background: C.card,
+                      border: `1px solid ${C.border}`,
+                      color: C.text,
+                      borderRadius: 4,
+                      padding: "3px 6px",
+                      cursor: "pointer",
+                      fontSize: 11,
+                    }}
+                  >
+                    ▼
+                  </button>
+                  <button
+                    onClick={() => removeRow(row.rowId)}
+                    style={{
+                      background: C.red,
+                      border: "none",
+                      color: "#fff",
+                      borderRadius: 4,
+                      padding: "3px 7px",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    padding: 8,
+                    minHeight: 60,
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {row.cells.length === 0 ? (
+                    <div
+                      style={{
+                        flex: 1,
+                        textAlign: "center",
+                        color: C.muted,
+                        fontSize: 12,
+                        padding: "14px 0",
+                      }}
+                    >
+                      {selectedImgId
+                        ? "👆 위의 [✚ 여기에 추가] 버튼을 누르세요"
+                        : "이미지를 선택 후 추가 버튼 클릭"}
+                    </div>
+                  ) : (
+                    row.cells.map((cell, ci) => {
+                      const img = pool.find((p) => p.id === cell.imgId);
+                      if (!img) return null;
+                      return (
+                        <div
+                          key={cell.cellId}
+                          style={{ flexShrink: 0, width: 96 }}
+                        >
+                          <div style={{ position: "relative" }}>
+                            <img
+                              src={img.src}
+                              style={{
+                                width: "100%",
+                                display: "block",
+                                borderRadius: 4,
+                              }}
+                              alt=""
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 3,
+                                left: 3,
+                                background: C.blue,
+                                color: "#fff",
+                                fontSize: 9,
+                                fontWeight: 700,
+                                padding: "1px 4px",
+                                borderRadius: 3,
+                              }}
+                            >
+                              {pool.findIndex((p) => p.id === cell.imgId) + 1}
+                            </div>
+                            <button
+                              onClick={() => removeCell(row.rowId, cell.cellId)}
+                              style={{
+                                position: "absolute",
+                                top: 3,
+                                right: 3,
+                                background: C.red,
+                                border: "none",
+                                color: "#fff",
+                                borderRadius: 3,
+                                width: 16,
+                                height: 16,
+                                cursor: "pointer",
+                                fontSize: 11,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: 0,
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                          <div
+                            style={{ display: "flex", gap: 2, marginTop: 3 }}
+                          >
+                            <button
+                              onClick={() =>
+                                moveCell(row.rowId, cell.cellId, -1)
+                              }
+                              disabled={ci === 0}
+                              style={{
+                                flex: 1,
+                                background: C.panel,
+                                border: `1px solid ${C.border}`,
+                                color: C.text,
+                                borderRadius: 3,
+                                padding: "2px 0",
+                                cursor: "pointer",
+                                fontSize: 11,
+                              }}
+                            >
+                              ◀
+                            </button>
+                            <button
+                              onClick={() =>
+                                moveCell(row.rowId, cell.cellId, 1)
+                              }
+                              disabled={ci === row.cells.length - 1}
+                              style={{
+                                flex: 1,
+                                background: C.panel,
+                                border: `1px solid ${C.border}`,
+                                color: C.text,
+                                borderRadius: 3,
+                                padding: "2px 0",
+                                cursor: "pointer",
+                                fontSize: 11,
+                              }}
+                            >
+                              ▶
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="링크 URL"
+                            value={cell.link}
+                            onChange={(e) =>
+                              updateLink(row.rowId, cell.cellId, e.target.value)
+                            }
                             style={{
                               width: "100%",
-                              display: "block",
+                              marginTop: 3,
+                              background: C.bg,
+                              border: `1px solid ${cell.link ? C.green : C.border}`,
                               borderRadius: 4,
+                              padding: "3px 5px",
+                              color: C.text,
+                              fontSize: 10,
+                              outline: "none",
+                              boxSizing: "border-box",
                             }}
                           />
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: 3,
-                              left: 3,
-                              background: C.blue,
-                              color: "#fff",
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: "1px 4px",
-                              borderRadius: 3,
-                            }}
-                          >
-                            {pool.findIndex((p) => p.id === cell.imgId) + 1}
-                          </div>
-                          <button
-                            onClick={() => removeCell(row.rowId, cell.cellId)}
-                            style={{
-                              position: "absolute",
-                              top: 3,
-                              right: 3,
-                              background: C.red,
-                              border: "none",
-                              color: "#fff",
-                              borderRadius: 3,
-                              width: 16,
-                              height: 16,
-                              cursor: "pointer",
-                              fontSize: 12,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              padding: 0,
-                            }}
-                          >
-                            ×
-                          </button>
+                          {baseUrl.trim() && (
+                            <div
+                              title={getImgSrc(img.name)}
+                              style={{
+                                fontSize: 9,
+                                color: C.purple,
+                                marginTop: 2,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              🔗 {getImgSrc(img.name)}
+                            </div>
+                          )}
+                          {cell.link && (
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: C.green,
+                                marginTop: 2,
+                              }}
+                            >
+                              🔗 링크됨
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: "flex", gap: 2, marginTop: 3 }}>
-                          <button
-                            onClick={() => moveCell(row.rowId, cell.cellId, -1)}
-                            disabled={ci === 0}
-                            style={{
-                              flex: 1,
-                              background: C.card,
-                              border: `1px solid ${C.border}`,
-                              color: C.text,
-                              borderRadius: 4,
-                              padding: "2px 0",
-                              cursor: "pointer",
-                              fontSize: 12,
-                            }}
-                          >
-                            ◀
-                          </button>
-                          <button
-                            onClick={() => moveCell(row.rowId, cell.cellId, 1)}
-                            disabled={ci === row.cells.length - 1}
-                            style={{
-                              flex: 1,
-                              background: C.card,
-                              border: `1px solid ${C.border}`,
-                              color: C.text,
-                              borderRadius: 4,
-                              padding: "2px 0",
-                              cursor: "pointer",
-                              fontSize: 12,
-                            }}
-                          >
-                            ▶
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="링크 URL"
-                          value={cell.link}
-                          onChange={(e) =>
-                            updateLink(row.rowId, cell.cellId, e.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            marginTop: 3,
-                            background: C.bg,
-                            border: `1px solid ${cell.link ? C.green : C.border}`,
-                            borderRadius: 4,
-                            padding: "3px 5px",
-                            color: C.text,
-                            fontSize: 12,
-                            outline: "none",
-                            boxSizing: "border-box",
-                          }}
-                        />
-                        {/* 실제 src URL 미리보기 */}
-                        {baseUrl.trim() && (
-                          <div
-                            style={{
-                              fontSize: 8,
-                              color: C.purple,
-                              marginTop: 2,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              title: getImgSrc(img.name),
-                            }}
-                            title={getImgSrc(img.name)}
-                          >
-                            🔗 {getImgSrc(img.name)}
-                          </div>
-                        )}
-                        {cell.link && (
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: C.green,
-                              marginTop: 2,
-                            }}
-                          >
-                            🔗 링크됨
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
           <button
             onClick={addRow}
             style={{
               width: "100%",
+              marginTop: 8,
               padding: 10,
               background: "transparent",
               border: `1px dashed ${C.border}`,
@@ -812,29 +883,28 @@ export default function Tool() {
               fontWeight: 600,
             }}
           >
-            + 새 행 추가
+            + 빈 행 추가
           </button>
         </div>
 
-        {/* ③ 미리보기 + HTML */}
+        {/* ③④ 미리보기 + HTML */}
         <div
           style={{
-            overflowY: "scroll",
+            overflowY: "auto",
             padding: 12,
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            height: "100vh",
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 700,
+                fontSize: 11,
+                fontWeight: 600,
                 color: C.muted,
                 textTransform: "uppercase",
-                letterSpacing: 1,
+                letterSpacing: 0.5,
                 marginBottom: 8,
               }}
             >
@@ -854,7 +924,7 @@ export default function Tool() {
                     padding: 20,
                     textAlign: "center",
                     color: C.muted,
-                    fontSize: 12,
+                    fontSize: 11,
                   }}
                 >
                   이미지를 배치하면 여기에 표시됩니다
@@ -867,7 +937,7 @@ export default function Tool() {
                       img: pool.find((p) => p.id === c.imgId),
                     }))
                     .filter((c) => c.img);
-                  if (cells.length === 0) return null;
+                  if (!cells.length) return null;
                   return (
                     <div
                       key={row.rowId}
@@ -878,8 +948,8 @@ export default function Tool() {
                           key={cellId}
                           style={{
                             flex: 1,
-                            position: "relative",
                             cursor: link ? "pointer" : "default",
+                            position: "relative",
                           }}
                           onClick={() => link && window.open(link, "_blank")}
                         >
@@ -890,6 +960,7 @@ export default function Tool() {
                               display: "block",
                               verticalAlign: "top",
                             }}
+                            alt=""
                           />
                           {link && (
                             <div
@@ -914,7 +985,7 @@ export default function Tool() {
                                 style={{
                                   background: "rgba(0,0,0,0.75)",
                                   color: "#fff",
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   padding: "3px 7px",
                                   borderRadius: 5,
                                 }}
@@ -938,16 +1009,16 @@ export default function Tool() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 8,
+                marginBottom: 6,
               }}
             >
               <div
                 style={{
-                  fontSize: 12,
-                  fontWeight: 700,
+                  fontSize: 11,
+                  fontWeight: 600,
                   color: C.muted,
                   textTransform: "uppercase",
-                  letterSpacing: 1,
+                  letterSpacing: 0.5,
                 }}
               >
                 ④ HTML 코드
@@ -959,9 +1030,9 @@ export default function Tool() {
                   border: "none",
                   color: "#fff",
                   borderRadius: 5,
-                  padding: "6px 12px",
+                  padding: "5px 12px",
                   cursor: "pointer",
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: 600,
                 }}
               >
@@ -973,41 +1044,42 @@ export default function Tool() {
               value={generateHTML()}
               style={{
                 flex: 1,
-                minHeight: 250,
+                minHeight: 240,
                 width: "100%",
                 background: C.panel,
                 border: `1px solid ${C.border}`,
                 borderRadius: 8,
                 color: "#79c0ff",
-                fontSize: 12,
+                fontSize: 11,
                 padding: 10,
                 fontFamily: "monospace",
                 resize: "none",
                 outline: "none",
                 boxSizing: "border-box",
+                lineHeight: 1.5,
               }}
             />
             <div
               style={{
-                marginTop: 8,
-                fontSize: 12,
+                marginTop: 6,
+                fontSize: 11,
                 color: C.muted,
                 lineHeight: 1.6,
                 background: C.card,
                 borderRadius: 6,
-                padding: 8,
+                padding: "7px 10px",
               }}
             >
               {baseUrl.trim() ? (
                 <>
                   <span style={{ color: C.purple }}>🔗 베이스 URL 적용 중</span>{" "}
-                  — src가 풀 URL로 자동 생성됩니다.
+                  — src가 풀 URL로 생성됩니다.
                   <br />
                   <span
                     style={{
                       color: C.muted,
                       fontFamily: "monospace",
-                      fontSize: 12,
+                      fontSize: 10,
                     }}
                   >
                     {baseUrl.trim().replace(/\/$/, "")}/파일명
@@ -1019,10 +1091,8 @@ export default function Tool() {
                   <span style={{ color: "#ffa657" }}>파일명</span>으로
                   표시됩니다.
                   <br />
-                  <span style={{ color: C.blue }}>
-                    상단에 이미지 URL을 입력
-                  </span>
-                  하면 자동으로 풀 URL이 생성됩니다.
+                  <span style={{ color: C.blue }}>상단에 이미지 URL 입력</span>
+                  하면 풀 URL이 자동 생성됩니다.
                 </>
               )}
             </div>
