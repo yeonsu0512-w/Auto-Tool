@@ -172,9 +172,9 @@ export default function Tool() {
 
     const tdStyle = `padding:0;margin:0;line-height:0;vertical-align:top;border:0;font-size:0;height:0;`;
     const imgStyle = `display:block;width:100%;vertical-align:top;border:0;line-height:0;height:auto;`;
-    const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%;mso-table-lspace:0pt;line-height:0;mso-table-rspace:0pt;`;
+    const tableStyle = `border-collapse:collapse;border-spacing:0;margin:0;padding:0;width:100%;max-width:800px;mso-table-lspace:0pt;line-height:0;mso-table-rspace:0pt;margin:0 auto;`;
 
-    let inner = `    <div style="width:100%; max-width:800px; margin:0;">\n`;
+    let inner = `    <div style="width:100%; max-width:800px;text-align:center; font-size:0;margin:0;">\n`;
     inner += `        <table border="0" cellpadding="0" cellspacing="0" style="${tableStyle}">\n            <tbody>\n`;
 
     rows.forEach((row) => {
