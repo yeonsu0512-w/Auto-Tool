@@ -165,6 +165,8 @@ export default function Tool() {
     setTimeout(() => setBaseUrlApplied(false), 2000);
   };
 
+  // 주의: 실제 발송용 HTML(generateHTML)은 원본 비율을 그대로 유지합니다.
+  // 미리보기/썸네일에만 고정 높이 + object-fit: cover를 적용했습니다.
   const generateHTML = () => {
     const validRows = rows.filter((r) => r.cells.length > 0);
     if (!validRows.length)
@@ -222,6 +224,9 @@ export default function Tool() {
     muted: "#8b949e",
     purple: "#bc8cff",
   };
+
+  // 썸네일/미리보기 전용 고정 높이 (필요하면 이 값만 조절하세요)
+  const THUMB_HEIGHT = 90;
 
   return (
     <div
@@ -499,11 +504,20 @@ export default function Tool() {
                         handleImgClick(img.id);
                       }
                     }}
-                    style={{ cursor: "pointer" }}
+                    style={{
+                      cursor: "pointer",
+                      height: THUMB_HEIGHT,
+                      overflow: "hidden",
+                    }}
                   >
                     <img
                       src={img.src}
-                      style={{ width: "100%", display: "block" }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
                       alt=""
                     />
                   </div>
@@ -761,13 +775,21 @@ export default function Tool() {
                           key={cell.cellId}
                           style={{ flexShrink: 0, width: 96 }}
                         >
-                          <div style={{ position: "relative" }}>
+                          <div
+                            style={{
+                              position: "relative",
+                              height: 72,
+                              overflow: "hidden",
+                              borderRadius: 4,
+                            }}
+                          >
                             <img
                               src={img.src}
                               style={{
                                 width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
                                 display: "block",
-                                borderRadius: 4,
                               }}
                               alt=""
                             />
@@ -979,7 +1001,7 @@ export default function Tool() {
                   return (
                     <div
                       key={row.rowId}
-                      style={{ display: "flex", lineHeight: 0 }}
+                      style={{ display: "flex", height: THUMB_HEIGHT }}
                     >
                       {cells.map(({ cellId, img, link }) => (
                         <div
@@ -988,6 +1010,8 @@ export default function Tool() {
                             flex: 1,
                             cursor: link ? "pointer" : "default",
                             position: "relative",
+                            height: "100%",
+                            overflow: "hidden",
                           }}
                           onClick={() => link && window.open(link, "_blank")}
                         >
@@ -995,6 +1019,8 @@ export default function Tool() {
                             src={img.src}
                             style={{
                               width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
                               display: "block",
                               verticalAlign: "top",
                             }}
